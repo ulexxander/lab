@@ -1,10 +1,23 @@
-# K8S narodni
+# Alex Lab
 
-## Hetzner Cloud CLI
+No comments, just experiments.
+
+![Science!](https://media.tenor.com/t4HIrZDwx8AAAAAd/doc-brown-it-works.gif)
+
+## Hetzner Kubernetes
+
+Located in [hetzner-kubernetes](./hetzner-kubernetes/main.tf) directory.
+
+- [Hetzner Cloud API Docs](https://docs.hetzner.cloud)
+- [hetznercloud/cli | GitHub](https://github.com/hetznercloud/cli)
+- [hetznercloud/hcloud | Terraform Registry](https://registry.terraform.io/providers/hetznercloud/hcloud/latest)
+- [kubeadm init Docs](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/)
+- [CIDR.xyz](https://cidr.xyz/)
+
+### Hetzner Cloud CLI
 
 ```sh
 # Install Hetzner Cloud CLI.
-# https://github.com/hetznercloud/cli
 wget https://github.com/hetznercloud/cli/releases/download/v1.36.0/hcloud-linux-amd64.tar.gz
 tar xvf hcloud-linux-amd64.tar.gz hcloud
 chmod +x hcloud
@@ -18,10 +31,27 @@ hcloud version
 # Create in Hetzner Cloud Console: your project / Security / API tokens
 hcloud context create Lab
 # Test configuration.
-hcloud server-type list
 # BTW, hcloud CLI stores token in $HOME/.config/hcloud/cli.toml
+hcloud server-type list
+# Install autocompletion.
+hcloud completion bash | sudo tee /etc/bash_completion.d/hcloud
 ```
 
-## Terraform
+### Terraform
 
 [Install Terraform | HashiCorp Developer](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+
+### Kubectl
+
+```sh
+# Install Kubectl.
+# https://kubernetes.io/docs/tasks/tools/install-kubectl-linux
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin
+# Install autocompletion.
+kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl
+
+# Test installation.
+kubectl version
+```
