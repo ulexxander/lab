@@ -1,0 +1,18 @@
+version: "3.8"
+
+# Generate password:
+#   wget https://raw.githubusercontent.com/bitcoin/bitcoin/master/share/rpcauth/rpcauth.py
+#   python3 rpcauth.py alex
+
+# Test RPC, inside container:
+#   curl -u "USER:PASSWORD" -d '{"jsonrpc":"1.0","id":"1","method":"getnetworkinfo","params":[]}' localhost:18443
+
+services:
+  bitcoin-core:
+    image: ruimarinho/bitcoin-core:23.0
+    command:
+      - -printtoconsole
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcauth='alex:9a5f24c8d285b8e165092c8f0aa81b2a$474e04b34c8044dfd3b55bce5ea500e1e5ec5f697294d464b0056e7672d92981'
+      # - -regtest=1

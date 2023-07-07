@@ -55,3 +55,15 @@ kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl
 # Test installation.
 kubectl version
 ```
+
+## Hetzner Blockchain
+
+| Blockchain | Node         | Scheme    | CPU | RAM | Disk   | Download    | Upload       |
+| ---------- | ------------ | --------- | --- | --- | ------ | ----------- | ------------ |
+| Bitcoin    | Bitcoin Core | Full Node |     |     | 350 GB | 15 GB/month | 150 GB/month |
+
+### Bitcoin Core setup
+
+- [ruimarinho/bitcoin-core](https://hub.docker.com/r/ruimarinho/bitcoin-core)
+- [Scaling Bitcoin Node with Kubernetes | Tigran.tech](https://tigran.tech/scaling-bitcoin-node-with-kubernetes/)
+- [Requirements and Warnings - Bitcoin Core](https://bitcoin.org/en/bitcoin-core/features/requirements)

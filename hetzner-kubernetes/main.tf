@@ -220,3 +220,6 @@ YAML
   }
   depends_on = [hcloud_network_route.gateway]
 }
+
+# TODO: replace apt-add-repository with manual file creation, because it produces very ugly
+# /etc/apt/sources.list.d/archive_uri-https_download_docker_com_linux_ubuntu-jammy.list !!!!
