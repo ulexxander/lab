@@ -1,3 +1,18 @@
+# 
+# https://kubernetes.github.io/ingress-nginx/deploy
+# 
+# Download manifest:
+#   curl -o 0-ingress-nginx.yaml https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.1/deploy/static/provider/cloud/deploy.yaml
+# 
+# Patched downloaded manifest:
+# service/ingress-nginx-controller
+#   Removed:
+#     externalTrafficPolicy: Local
+#     type: LoadBalancer
+#   Added:
+#     externalIPs:
+#       - 10.112.16.3
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -344,7 +359,6 @@ metadata:
   name: ingress-nginx-controller
   namespace: ingress-nginx
 spec:
-  externalTrafficPolicy: Local
   ipFamilies:
   - IPv4
   ipFamilyPolicy: SingleStack
@@ -363,7 +377,8 @@ spec:
     app.kubernetes.io/component: controller
     app.kubernetes.io/instance: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
-  type: LoadBalancer
+  externalIPs:
+    - 10.112.16.3
 ---
 apiVersion: v1
 kind: Service
