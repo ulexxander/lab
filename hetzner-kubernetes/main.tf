@@ -202,7 +202,13 @@ write_files:
       [Resolve]
       DNS=185.12.64.2 185.12.64.1
 
+manage_etc_hosts: false
+
 runcmd:
+  # For kubelet to properly select its internal IP in case they are multiple network interfaces,
+  # we map hostname to internal IP in hosts file.
+  - echo "$(hostname -i | xargs -n1 | grep ^10.112.16) $(hostname)" >> /etc/hosts
+
   %{~if count.index == 0 || !var.kube_workers_public~}
   - systemctl start ip-route-default-private-gateway
   - systemctl enable ip-route-default-private-gateway
@@ -257,7 +263,7 @@ runcmd:
     --service-cidr 10.112.48.0/20
     --pod-network-cidr 10.112.64.0/20
     --upload-certs
-    %{else}
+    %{~else~}
     kubeadm join "${coalesce(var.kube_join_address, "N/A")}"
     --token "${coalesce(var.kube_join_token, "N/A")}"
     --discovery-token-ca-cert-hash "${coalesce(var.kube_join_ca_cert_hash, "N/A")}"
@@ -271,8 +277,7 @@ YAML
 }
 
 locals {
-  kube_master_node  = hcloud_server.kube_nodes[0]
-  kube_worker_nodes = slice(hcloud_server.kube_nodes, 1, var.kube_nodes_count)
+  kube_worker_nodes = slice(hcloud_server.kube_nodes, 1, length(hcloud_server.kube_nodes))
 }
 
 # Firewall is attached only if nodes are public.
@@ -288,12 +293,19 @@ resource "hcloud_firewall" "kube_workers" {
     protocol    = "icmp"
     source_ips  = ["0.0.0.0/0"]
   }
+  rule {
+    description = "HTTP"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "80"
+    source_ips  = ["0.0.0.0/0"]
+  }
 
   # SSH is still possible but over VPN connection, not over the Internet.
 }
 
 resource "hcloud_firewall_attachment" "kube_workers" {
-  count = var.kube_workers_public ? 1 : 0
+  count = var.kube_workers_public && length(local.kube_worker_nodes) != 0 ? 1 : 0
 
   firewall_id = hcloud_firewall.kube_workers[0].id
   server_ids  = local.kube_worker_nodes[*].id
