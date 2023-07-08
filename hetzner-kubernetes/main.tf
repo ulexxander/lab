@@ -83,6 +83,36 @@ YAML
 # TODO: "-s 10.112.16.0/20 -o eth0" (internet NAT) should be enabled separately by other systemd service.
 # Don't abuse wg PostUp :)
 
+resource "hcloud_firewall" "gateway" {
+  name = "gateway"
+
+  rule {
+    description = "Ping"
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = ["0.0.0.0/0"]
+  }
+  rule {
+    description = "SSH"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "22"
+    source_ips  = ["0.0.0.0/0"]
+  }
+  rule {
+    description = "WireGuard"
+    direction   = "in"
+    protocol    = "udp"
+    port        = "51820"
+    source_ips  = ["0.0.0.0/0"]
+  }
+}
+
+resource "hcloud_firewall_attachment" "gateway" {
+  firewall_id = hcloud_firewall.gateway.id
+  server_ids  = [hcloud_server.gateway.id]
+}
+
 resource "hcloud_network_route" "gateway" {
   network_id  = hcloud_network.eu_central.id
   destination = "0.0.0.0/0"

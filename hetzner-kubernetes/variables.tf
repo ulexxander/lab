@@ -15,7 +15,6 @@ variable "password_hash" {
 
 variable "kube_nodes_count" {
   type        = number
-  default     = 3
   description = <<TEXT
 Desired count of master nodes.
 If "kube_join_address", "kube_join_token" and "kube_join_ca_cert_hash" are empty, only one will be created.
