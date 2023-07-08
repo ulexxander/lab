@@ -2,7 +2,7 @@
 
 No comments, just experiments.
 
-![Science!](https://media.tenor.com/t4HIrZDwx8AAAAAd/doc-brown-it-works.gif)
+![It works](./it-works.gif)
 
 ## Hetzner Kubernetes
 
