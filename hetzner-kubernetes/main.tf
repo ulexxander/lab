@@ -83,6 +83,8 @@ YAML
 # TODO: "-s 10.112.16.0/20 -o eth0" (internet NAT) should be enabled separately by other systemd service.
 # Don't abuse wg PostUp :)
 
+# Note that firewall applies to traffic only on interface with public IP, say eth0.
+# Private traffic can still flow freely.
 resource "hcloud_firewall" "gateway" {
   name = "gateway"
 
@@ -255,4 +257,33 @@ YAML
     ignore_changes = [network]
   }
   depends_on = [hcloud_network_route.gateway]
+}
+
+locals {
+  kube_master_node  = hcloud_server.kube_nodes[0]
+  kube_worker_nodes = slice(hcloud_server.kube_nodes, 1, var.kube_nodes_count)
+}
+
+# Firewall is attached only if nodes are public.
+# Hetzner does not allow attaching firewall for servers with private IP only.
+resource "hcloud_firewall" "kube_workers" {
+  count = var.kube_workers_public ? 1 : 0
+
+  name = "kube-workers"
+
+  rule {
+    description = "Ping"
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = ["0.0.0.0/0"]
+  }
+
+  # SSH is still possible but over VPN connection, not over the Internet.
+}
+
+resource "hcloud_firewall_attachment" "kube_workers" {
+  count = var.kube_workers_public ? 1 : 0
+
+  firewall_id = hcloud_firewall.kube_workers[0].id
+  server_ids  = local.kube_worker_nodes[*].id
 }
