@@ -121,6 +121,12 @@ resource "hcloud_network_route" "gateway" {
   gateway     = one(hcloud_server.gateway.network).ip
 }
 
+resource "hcloud_rdns" "gateway" {
+  server_id  = hcloud_server.gateway.id
+  ip_address = hcloud_server.gateway.ipv4_address
+  dns_ptr    = "gateway.lab.ulexxander.github.com"
+}
+
 # First Kubernetes node is going to be master, others are workers. HA control plane not yet implemented.
 # 
 # After launching master, SSH to it using its private IP (assuming your VPN is up) and:
@@ -149,7 +155,12 @@ resource "hcloud_network_route" "gateway" {
 # 
 # You can now apply your favourite CNI, say Flannel and launch the rest of nodes by increasing kube_nodes_count variable.
 resource "hcloud_server" "kube_nodes" {
-  count = var.kube_join_address != null && var.kube_join_token != null && var.kube_join_ca_cert_hash != null ? var.kube_nodes_count : 1
+  count = coalesce(
+    var.kube_join_address,
+    var.kube_join_token,
+    var.kube_join_ca_cert_hash,
+    "N/A"
+  ) != "N/A" ? var.kube_nodes_count : 1
 
   name        = "kube-${count.index == 0 ? "master" : "worker"}-${count.index}"
   location    = "nbg1" # Nuremberg, eu-central
@@ -286,4 +297,12 @@ resource "hcloud_firewall_attachment" "kube_workers" {
 
   firewall_id = hcloud_firewall.kube_workers[0].id
   server_ids  = local.kube_worker_nodes[*].id
+}
+
+resource "hcloud_rdns" "kube_workers" {
+  for_each = var.kube_workers_public ? { for node in local.kube_worker_nodes : node.name => node } : {}
+
+  server_id  = each.value.id
+  ip_address = each.value.ipv4_address
+  dns_ptr    = "${each.key}.lab.ulexxander.github.com"
 }
