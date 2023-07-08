@@ -10,3 +10,7 @@ output "gateway_private_ip" {
 output "kube_nodes_private_ips" {
   value = { for node in hcloud_server.kube_nodes : node.name => one(node.network).ip }
 }
+
+output "kube_nodes_public_ips" {
+  value = { for node in hcloud_server.kube_nodes : node.name => node.ipv4_address }
+}

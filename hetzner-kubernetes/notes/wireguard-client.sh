@@ -13,7 +13,7 @@ PrivateKey = $(sudo cat /etc/wireguard/private.key)
 Address = 10.112.32.2/20
 
 [Peer]
-PublicKey = 0KydIx+KR9OVotDF2ccayNCDq2PJ0DKh/9tHI4bNgBw=
+PublicKey = hpdES4TFNJSZRb8oSNmtyfnVrNC15rXzBPUb0Q19JB4=
 AllowedIPs = 10.112.0.0/16
 Endpoint = $(terraform output -raw gateway_public_ip):51820
 EOF

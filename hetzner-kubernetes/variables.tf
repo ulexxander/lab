@@ -23,6 +23,12 @@ To create the rest you first need to SSH to the first master node and obtain tho
 TEXT
 }
 
+variable "kube_workers_public" {
+  type        = bool
+  default     = false
+  description = "Whether Kubernetes worker nodes have public IPs. But control plane will always stay in the private network."
+}
+
 variable "kube_join_address" {
   type    = string
   default = null

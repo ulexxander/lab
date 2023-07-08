@@ -21,7 +21,7 @@ resource "hcloud_server" "gateway" {
   name        = "gateway"
   location    = "nbg1" # Nuremberg, eu-central
   image       = "ubuntu-22.04"
-  server_type = "cpx11"
+  server_type = "cx21"
   public_net {
     ipv4_enabled = true
     ipv6_enabled = false
@@ -43,13 +43,10 @@ users:
     ssh_authorized_keys:
       - ${var.ssh_public_key}
 
-package_update: true
-package_upgrade: false
-packages:
-  - apt-transport-https
-  - wireguard
-
 runcmd:
+  - apt-get update
+  - apt-get install -y wireguard
+
   - |
     tee /etc/sysctl.d/wireguard.conf <<EOF
     net.ipv4.ip_forward = 1
@@ -125,9 +122,9 @@ resource "hcloud_server" "kube_nodes" {
   name        = "kube-${count.index == 0 ? "master" : "worker"}-${count.index}"
   location    = "nbg1" # Nuremberg, eu-central
   image       = "ubuntu-22.04"
-  server_type = "cpx11"
+  server_type = "cx21"
   public_net {
-    ipv4_enabled = false
+    ipv4_enabled = count.index != 0 && var.kube_workers_public
     ipv6_enabled = false
   }
   network {
@@ -148,7 +145,7 @@ users:
       - ${var.ssh_public_key}
 
 write_files:
-  - path: /etc/systemd/system/ip-route-default-gateway.service
+  - path: /etc/systemd/system/ip-route-default-private-gateway.service
     content: |
       [Unit]
       Description=IP Route to Default Gateway
@@ -163,12 +160,12 @@ write_files:
       DNS=185.12.64.2 185.12.64.1
 
 runcmd:
-  - systemctl start ip-route-default-gateway
-  - systemctl enable ip-route-default-gateway
-  - systemctl restart systemd-resolved.service
+  %{~if count.index == 0 || !var.kube_workers_public~}
+  - systemctl start ip-route-default-private-gateway
+  - systemctl enable ip-route-default-private-gateway
+  %{~endif~}
 
-  - apt update
-  - apt install apt-transport-https
+  - systemctl restart systemd-resolved.service
 
   - |
     tee /etc/modules-load.d/kubernetes.conf <<EOF
@@ -188,22 +185,31 @@ runcmd:
 
   - sysctl --system
 
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
-  - apt-add-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - apt install -y containerd.io
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - |
+    tee /etc/apt/sources.list.d/docker.list <<EOF
+    deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable
+    EOF
+  - apt-get update
+  - apt-get install -y containerd.io
 
   - containerd config default | tee /etc/containerd/config.toml > /dev/null
   - sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
   - systemctl restart containerd
 
-  - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmour -o /etc/apt/trusted.gpg.d/kubernetes-xenial.gpg
-  - apt-add-repository -y "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-  - apt install -y kubelet kubeadm kubectl
+  - curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+  - |
+    tee /etc/apt/sources.list.d/kubernetes.list <<EOF
+    deb [arch=amd64 signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main
+    EOF
+  - apt-get update
+  - apt-get install -y kubelet kubeadm kubectl
   - apt-mark hold kubelet kubeadm kubectl
 
   - kubeadm config images pull
 
-  - >- %{if count.index == 0}
+  - >-
+    %{~if count.index == 0~}
     kubeadm init
     --service-cidr 10.112.48.0/20
     --pod-network-cidr 10.112.64.0/20
@@ -212,7 +218,7 @@ runcmd:
     kubeadm join "${coalesce(var.kube_join_address, "N/A")}"
     --token "${coalesce(var.kube_join_token, "N/A")}"
     --discovery-token-ca-cert-hash "${coalesce(var.kube_join_ca_cert_hash, "N/A")}"
-    %{endif}
+    %{~endif~}
 YAML
 
   lifecycle {
@@ -220,6 +226,3 @@ YAML
   }
   depends_on = [hcloud_network_route.gateway]
 }
-
-# TODO: replace apt-add-repository with manual file creation, because it produces very ugly
-# /etc/apt/sources.list.d/archive_uri-https_download_docker_com_linux_ubuntu-jammy.list !!!!
