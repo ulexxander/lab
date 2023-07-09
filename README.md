@@ -60,7 +60,7 @@ kubectl version
 
 | Blockchain | Node         | Scheme    | CPU | RAM | Disk   | Download    | Upload       |
 | ---------- | ------------ | --------- | --- | --- | ------ | ----------- | ------------ |
-| Bitcoin    | Bitcoin Core | Full Node |     |     | 350 GB | 15 GB/month | 150 GB/month |
+| Bitcoin    | Bitcoin Core | Full Node | 2 ? | 4 ? | 350 GB | 15 GB/month | 150 GB/month |
 
 ### Bitcoin Core setup
 

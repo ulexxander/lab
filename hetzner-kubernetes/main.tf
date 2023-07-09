@@ -121,6 +121,21 @@ locals {
   kube_worker_nodes = slice(hcloud_server.kube_nodes, 1, length(hcloud_server.kube_nodes))
 }
 
+resource "hcloud_volume" "bitcoin_core" {
+  name     = "bitcoin-core"
+  location = "nbg1"
+  format   = "ext4"
+  size     = 500
+}
+
+resource "hcloud_volume_attachment" "bitcoin_core" {
+  count = length(hcloud_server.kube_nodes) > 1 ? 1 : 0
+
+  volume_id = hcloud_volume.bitcoin_core.id
+  server_id = hcloud_server.kube_nodes[1].id
+  automount = true
+}
+
 resource "hcloud_rdns" "kube_workers" {
   for_each = var.kube_workers_public ? { for node in local.kube_worker_nodes : node.name => node } : {}
 

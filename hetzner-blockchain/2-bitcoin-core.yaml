@@ -44,3 +44,18 @@ spec:
           envFrom:
             - secretRef:
                 name: bitcoin-core
+          volumeMounts:
+            - name: bitcoin-core
+              mountPath: /root/.bitcoin
+  volumeClaimTemplates:
+    - metadata:
+        name: bitcoin-core
+        labels:
+          app.kubernetes.io/name: bitcoin-core
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: hc-volume
+        resources:
+          requests:
+            storage: 465Gi
