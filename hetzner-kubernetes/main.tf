@@ -1,136 +1,8 @@
 
-# 10.112.0.0/16 - EU CENTRAL
-#   10.112.16.0/20 - SERVERS
-#   10.112.32.0/20 - VPN
-#   10.112.48.0/20 - KUBE SERVICES
-#   10.112.64.0/20 - KUBE PODS
-
-resource "hcloud_network" "eu_central" {
-  name     = "eu-central"
-  ip_range = "10.112.0.0/16"
-}
-
-resource "hcloud_network_subnet" "eu_central_servers" {
-  network_id   = hcloud_network.eu_central.id
-  type         = "cloud"
-  network_zone = "eu-central"
-  ip_range     = "10.112.16.0/20"
-}
-
-resource "hcloud_server" "gateway" {
-  name        = "gateway"
-  location    = "nbg1" # Nuremberg, eu-central
-  image       = "ubuntu-22.04"
-  server_type = "cx21"
-  public_net {
-    ipv4_enabled = true
-    ipv6_enabled = false
-  }
-  network {
-    network_id = hcloud_network.eu_central.id
-  }
-
-  user_data = <<YAML
-#cloud-config
-
-users:
-  - name: alex
-    groups: sudo, docker
-    shell: /bin/bash
-    lock_passwd: false
-    # mkpasswd --method=SHA-512 --rounds=4096
-    passwd: "${var.password_hash}"
-    ssh_authorized_keys:
-      - ${var.ssh_public_key}
-
-runcmd:
-  - apt-get update
-  - apt-get install -y wireguard
-
-  - |
-    tee /etc/sysctl.d/wireguard.conf <<EOF
-    net.ipv4.ip_forward = 1
-    EOF
-  
-  - sysctl --system
-  
-  - wg genkey | tee /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
-  - chmod 600 /etc/wireguard/private.key /etc/wireguard/public.key
-  
-  - |
-    tee /etc/wireguard/wg0.conf <<EOF
-    [Interface]
-    PrivateKey = $(cat /etc/wireguard/private.key)
-    Address = 10.112.32.1/20
-    ListenPort = 51820
-    SaveConfig = true
-    PostUp = iptables -t nat -I POSTROUTING -s 10.112.16.0/20 -o eth0 -j MASQUERADE
-    PostUp = iptables -t nat -I POSTROUTING -s 10.112.32.0/20 -o enp7s0 -j MASQUERADE
-    PreDown = iptables -t nat -D POSTROUTING -s 10.112.16.0/20 -o eth0 -j MASQUERADE
-    PreDown = iptables -t nat -D POSTROUTING -s 10.112.32.0/20 -o enp7s0 -j MASQUERADE
-    EOF
-
-  - systemctl enable wg-quick@wg0.service
-  - systemctl start wg-quick@wg0.service
-YAML
-
-  lifecycle {
-    ignore_changes = [network]
-  }
-  depends_on = [hcloud_network_subnet.eu_central_servers]
-}
-
-# TODO: "-s 10.112.16.0/20 -o eth0" (internet NAT) should be enabled separately by other systemd service.
-# Don't abuse wg PostUp :)
-
-# Note that firewall applies to traffic only on interface with public IP, say eth0.
-# Private traffic can still flow freely.
-resource "hcloud_firewall" "gateway" {
-  name = "gateway"
-
-  rule {
-    description = "Ping"
-    direction   = "in"
-    protocol    = "icmp"
-    source_ips  = ["0.0.0.0/0"]
-  }
-  rule {
-    description = "SSH"
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "22"
-    source_ips  = ["0.0.0.0/0"]
-  }
-  rule {
-    description = "WireGuard"
-    direction   = "in"
-    protocol    = "udp"
-    port        = "51820"
-    source_ips  = ["0.0.0.0/0"]
-  }
-}
-
-resource "hcloud_firewall_attachment" "gateway" {
-  firewall_id = hcloud_firewall.gateway.id
-  server_ids  = [hcloud_server.gateway.id]
-}
-
-resource "hcloud_network_route" "gateway" {
-  network_id  = hcloud_network.eu_central.id
-  destination = "0.0.0.0/0"
-  gateway     = one(hcloud_server.gateway.network).ip
-}
-
-resource "hcloud_rdns" "gateway" {
-  server_id  = hcloud_server.gateway.id
-  ip_address = hcloud_server.gateway.ipv4_address
-  dns_ptr    = "gateway.lab.ulexxander.github.com"
-}
-
 # First Kubernetes node is going to be master, others are workers. HA control plane not yet implemented.
 # 
-# After launching master, SSH to it using its private IP (assuming your VPN is up) and:
-#   ssh $(terraform output -json kube_nodes_private_ips | jq -r '."kube-master-0"')
+# After launching master:
+#   make kube-master-ssh
 #   sudo tail /var/log/cloud-init-output.log -n 30
 # 
 # If initialization succeeded, it should coutain something like this:
@@ -146,7 +18,7 @@ resource "hcloud_rdns" "gateway" {
 #   kubectl get nodes
 #
 # Transfer kubeconfig to your workstation:
-#   scp $(terraform output -json kube_nodes_private_ips | jq -r '."kube-master-0"'):~/.kube/config ~/.kube/config
+#   make kube-config
 # And verify again, for your workstation:
 #   kubectl get nodes
 # 
@@ -167,11 +39,8 @@ resource "hcloud_server" "kube_nodes" {
   image       = "ubuntu-22.04"
   server_type = "cx21"
   public_net {
-    ipv4_enabled = count.index != 0 && var.kube_workers_public
+    ipv4_enabled = true
     ipv6_enabled = false
-  }
-  network {
-    network_id = hcloud_network.eu_central.id
   }
 
   user_data = <<YAML
@@ -187,35 +56,7 @@ users:
     ssh_authorized_keys:
       - ${var.ssh_public_key}
 
-write_files:
-  - path: /etc/systemd/system/ip-route-default-private-gateway.service
-    content: |
-      [Unit]
-      Description=IP Route to Default Gateway
-      After=network.target
-      [Service]
-      ExecStart=ip route add default via 10.112.0.1
-      [Install]
-      WantedBy=multi-user.target
-  - path: /etc/systemd/resolved.conf
-    content: |
-      [Resolve]
-      DNS=185.12.64.2 185.12.64.1
-
-manage_etc_hosts: false
-
 runcmd:
-  # For kubelet to properly select its internal IP in case they are multiple network interfaces,
-  # we map hostname to internal IP in hosts file.
-  - echo "$(hostname -i | xargs -n1 | grep ^10.112.16) $(hostname)" >> /etc/hosts
-
-  %{~if count.index == 0 || !var.kube_workers_public~}
-  - systemctl start ip-route-default-private-gateway
-  - systemctl enable ip-route-default-private-gateway
-  %{~endif~}
-
-  - systemctl restart systemd-resolved.service
-
   - |
     tee /etc/modules-load.d/kubernetes.conf <<EOF
     overlay
@@ -269,46 +110,15 @@ runcmd:
     --discovery-token-ca-cert-hash "${coalesce(var.kube_join_ca_cert_hash, "N/A")}"
     %{~endif~}
 YAML
-
-  lifecycle {
-    ignore_changes = [network]
-  }
-  depends_on = [hcloud_network_route.gateway]
 }
+
+# TODO: optimize if possible easily:
+# On master:
+#   Cloud-init v. 23.1.2-0ubuntu0~22.04.1 finished at Sun, 09 Jul 2023 14:32:59 +0000. Datasource DataSourceHetzner.
+#   Up 86.07 seconds
 
 locals {
   kube_worker_nodes = slice(hcloud_server.kube_nodes, 1, length(hcloud_server.kube_nodes))
-}
-
-# Firewall is attached only if nodes are public.
-# Hetzner does not allow attaching firewall for servers with private IP only.
-resource "hcloud_firewall" "kube_workers" {
-  count = var.kube_workers_public ? 1 : 0
-
-  name = "kube-workers"
-
-  rule {
-    description = "Ping"
-    direction   = "in"
-    protocol    = "icmp"
-    source_ips  = ["0.0.0.0/0"]
-  }
-  rule {
-    description = "HTTP"
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "80"
-    source_ips  = ["0.0.0.0/0"]
-  }
-
-  # SSH is still possible but over VPN connection, not over the Internet.
-}
-
-resource "hcloud_firewall_attachment" "kube_workers" {
-  count = var.kube_workers_public && length(local.kube_worker_nodes) != 0 ? 1 : 0
-
-  firewall_id = hcloud_firewall.kube_workers[0].id
-  server_ids  = local.kube_worker_nodes[*].id
 }
 
 resource "hcloud_rdns" "kube_workers" {

@@ -9,11 +9,11 @@ gateway-private-ssh:
 	ssh $(shell terraform output -raw gateway_private_ip)
 
 kube-master-ssh:
-	ssh $(shell terraform output -json kube_nodes_private_ips | jq -r '."kube-master-0"')
+	ssh $(shell terraform output -json kube_nodes_public_ips | jq -r '."kube-master-0"')
 
 kube-worker-ssh:
-	ssh $(shell terraform output -json kube_nodes_private_ips | jq -r '."kube-worker-${WORKER}"')
+	ssh $(shell terraform output -json kube_nodes_public_ips | jq -r '."kube-worker-${WORKER}"')
 
 # Prior to running this command don't forget to copy kube config to your home on master node.
 kube-config:
-	scp $(shell terraform output -json kube_nodes_private_ips | jq -r '."kube-master-0"'):~/.kube/config ~/.kube/config
+	scp $(shell terraform output -json kube_nodes_public_ips | jq -r '."kube-master-0"'):~/.kube/config ~/.kube/config
