@@ -1,8 +1,9 @@
 
 # Sync speed compared, progress / mins
-# Local PC (8/16)       0.089155 / 65 = 0.0013716153
-# Hetzner CPX11 (2/2)   0.064716 / 33 = 0.0019610909
-# Hetzner CPX41 (8/16)  0.028331 / 12 = 0.0023609166
+# Local PC (8/16)           0.089155 / 65 = 0.0013716153
+# Hetzner CPX11 (2/2)       0.064716 / 33 = 0.0019610909
+# Hetzner CPX41 (8/16)      0.028331 / 12 = 0.0023609166
+# Hetzner CX21 Kube (2/4)   0.342403 / 1200 = 0.00028533583333333333333
 
 # Sync docker-compose.yaml to server:
 #   scp docker-compose.yaml $(terraform output -raw bitcoin_core_public_ip):/deploy

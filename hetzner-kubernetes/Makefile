@@ -17,3 +17,6 @@ kube-worker-ssh:
 # Prior to running this command don't forget to copy kube config to your home on master node.
 kube-config:
 	scp $(shell terraform output -json kube_nodes_public_ips | jq -r '."kube-master-0"'):~/.kube/config ~/.kube/config
+
+kube-dashboard-token:
+	kubectl -n kubernetes-dashboard create token admin-user
