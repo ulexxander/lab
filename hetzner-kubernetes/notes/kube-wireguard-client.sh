@@ -2,6 +2,8 @@
 # What should be done on Wireguard client, say your laptop.
 # When running Wireguard inside Kubernetes cluster.
 #
+# Source tutorial, including Kube manifests:
+# https://www.perdian.de/blog/2022/02/21/setting-up-a-wireguard-vpn-using-kubernetes/
 
 sudo apt install wireguard
 
