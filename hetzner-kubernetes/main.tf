@@ -133,3 +133,5 @@ resource "hcloud_rdns" "kube_workers" {
   ip_address = each.value.ipv4_address
   dns_ptr    = "${each.key}.lab.ulexxander.github.com"
 }
+
+# TODO: firewall for kube nodes.
