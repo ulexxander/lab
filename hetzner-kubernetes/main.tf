@@ -104,6 +104,7 @@ runcmd:
     --service-cidr 10.112.48.0/20
     --pod-network-cidr 10.112.64.0/20
     --upload-certs
+    --token-ttl 0
     %{~else~}
     kubeadm join "${coalesce(var.kube_join_address, "N/A")}"
     --token "${coalesce(var.kube_join_token, "N/A")}"
