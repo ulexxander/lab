@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: wireguard
+  namespace: vpn
   labels:
     app.kubernetes.io/name: wireguard
 spec:
@@ -19,6 +20,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: wireguard-template
+  namespace: vpn
   labels:
     app.kubernetes.io/name: wireguard
 data:
@@ -41,6 +43,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wireguard
+  namespace: vpn
   labels:
     app.kubernetes.io/name: wireguard
 spec:
