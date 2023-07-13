@@ -1,10 +1,15 @@
+# Source:
+# https://github.com/prometheus-operator/kube-prometheus/blob/v0.12.0/manifests/nodeExporter-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    app.kubernetes.io/name: node-exporter
   name: node-exporter
   namespace: metrics
+  labels:
+    app.kubernetes.io/name: node-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
 spec:
   clusterIP: None
   ports:
@@ -13,13 +18,15 @@ spec:
     app.kubernetes.io/name: node-exporter
 
 ---
+# Source:
+# https://github.com/prometheus-operator/kube-prometheus/blob/v0.12.0/manifests/nodeExporter-daemonset.yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  labels:
-    app.kubernetes.io/name: node-exporter
   name: node-exporter
   namespace: metrics
+  labels:
+    app.kubernetes.io/name: node-exporter
 spec:
   selector:
     matchLabels:
