@@ -15,7 +15,7 @@ spec:
         app.kubernetes.io/name: kiosk-gui
     spec:
       nodeSelector:
-        kubernetes.io/hostname: debian-kde
+        kubernetes.io/hostname: kube-kiosk-100
       containers:
         - name: kiosk-gui
           # Image need to be imported on node, see Makefile.

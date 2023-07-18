@@ -70,3 +70,6 @@ Located in [kubernetes-blockchain](./kubernetes-blockchain/2-bitcoin-core.yaml) 
 - [Scaling Bitcoin Node with Kubernetes | Tigran.tech](https://tigran.tech/scaling-bitcoin-node-with-kubernetes/)
 - [Requirements and Warnings - Bitcoin Core](https://bitcoin.org/en/bitcoin-core/features/requirements)
 
+## Kubernetes Kiosk
+
+Located in [kubernetes-kiosk](./kubernetes-kiosk/Makefile) directory.

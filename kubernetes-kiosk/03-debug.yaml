@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kiosk-debug
+  namespace: kiosk
+  labels:
+    app.kubernetes.io/name: kiosk-debug
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kiosk-debug
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kiosk-debug
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: kube-kiosk-100
+      terminationGracePeriodSeconds: 1
+      containers:
+        - name: kiosk-debug
+          image: praqma/network-multitool
+          imagePullPolicy: IfNotPresent
+          command:
+            - sleep
+            - "10000"
