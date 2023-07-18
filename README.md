@@ -56,7 +56,9 @@ kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl
 kubectl version
 ```
 
-## Hetzner Blockchain
+## Kubernetes Blockchain
+
+Located in [kubernetes-blockchain](./kubernetes-blockchain/2-bitcoin-core.yaml) directory.
 
 | Blockchain | Node         | Scheme    | CPU | RAM | Disk   | Download    | Upload       |
 | ---------- | ------------ | --------- | --- | --- | ------ | ----------- | ------------ |
@@ -67,3 +69,4 @@ kubectl version
 - [ruimarinho/bitcoin-core](https://hub.docker.com/r/ruimarinho/bitcoin-core)
 - [Scaling Bitcoin Node with Kubernetes | Tigran.tech](https://tigran.tech/scaling-bitcoin-node-with-kubernetes/)
 - [Requirements and Warnings - Bitcoin Core](https://bitcoin.org/en/bitcoin-core/features/requirements)
+
