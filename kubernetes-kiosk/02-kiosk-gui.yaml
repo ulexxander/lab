@@ -24,6 +24,8 @@ spec:
           volumeMounts:
             - name: x11
               mountPath: /tmp/.X11-unix
+            - name: resolv-conf
+              mountPath: /etc/resolv.conf
           env:
             - name: DISPLAY
               value: :0
@@ -34,3 +36,6 @@ spec:
         - name: x11
           hostPath:
             path: /tmp/.X11-unix
+        - name: resolv-conf
+          hostPath:
+            path: /etc/resolv.conf
