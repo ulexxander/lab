@@ -15,6 +15,15 @@ spec:
       - /kubernetes-dashboard
 
 ---
+apiVersion: traefik.containo.us/v1alpha1
+kind: ServersTransport
+metadata:
+  name: skip-verify
+  namespace: kube-dashboard
+spec:
+  insecureSkipVerify: true
+
+---
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -23,28 +32,19 @@ metadata:
 spec:
   repo: https://kubernetes.github.io/dashboard
   chart: kubernetes-dashboard
+  version: 6.0.8
   valuesContent: |
-    nginx:
-      enabled: false
+    ingress:
+      enabled: true
+      paths:
+        - /kubernetes-dashboard
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.middlewares: kube-dashboard-strip-prefix@kubernetescrd
 
-    cert-manager:
-      enabled: false
-
-    metrics-server:
-      enabled: false
-
-    app:
-      ingress:
-        ingressClassName: traefik
-        hosts: null
-        paths:
-          web: /kubernetes-dashboard
-          api: /kubernetes-dashboard/api
-        annotations:
-          traefik.ingress.kubernetes.io/router.entrypoints: websecure
-          traefik.ingress.kubernetes.io/router.middlewares: kube-dashboard-strip-prefix@kubernetescrd
-        issuer:
-          name: disabled
+    service:
+      annotations:
+        traefik.ingress.kubernetes.io/service.serverstransport: kube-dashboard-skip-verify@kubernetescrd
 
 ---
 apiVersion: v1
