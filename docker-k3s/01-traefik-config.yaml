@@ -1,0 +1,33 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+
+    deployment:
+      kind: DaemonSet
+
+    updateStrategy:
+      type: OnDelete
+
+    service:
+      enabled: false
+
+    ports:
+      web:
+        hostPort: 80
+        redirectTo: websecure
+      websecure:
+        hostPort: 443
+        tls:
+          enable: true
+
+    ingressRoute:
+      dashboard:
+        entryPoints:
+          - websecure
