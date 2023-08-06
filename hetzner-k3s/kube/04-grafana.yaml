@@ -1,0 +1,22 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  repo: https://grafana.github.io/helm-charts
+  chart: grafana
+  version: 6.58.7
+  valuesContent: |-
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      path: /grafana
+      hosts: null
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+
+    grafana.ini:
+      server:
+        root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
+        serve_from_sub_path: "true"
