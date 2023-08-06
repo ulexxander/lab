@@ -39,6 +39,10 @@ spec:
         tls:
           enable: true
 
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true
+
     ingressRoute:
       dashboard:
         entryPoints:
