@@ -35,7 +35,7 @@ spec:
   version: 6.0.8
   valuesContent: |
     extraArgs:
-      - --token-ttl=24h
+      - --token-ttl=86400
 
     ingress:
       enabled: true
