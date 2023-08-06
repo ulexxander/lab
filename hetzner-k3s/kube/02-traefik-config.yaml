@@ -1,13 +1,3 @@
-apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: basic-auth
-  namespace: kube-system
-spec:
-  basicAuth:
-    secret: basic-auth
-
----
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:
