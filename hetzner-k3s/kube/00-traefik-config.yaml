@@ -1,0 +1,47 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: basic-auth
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: basic-auth
+
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+
+    deployment:
+      kind: DaemonSet
+
+    updateStrategy:
+      rollingUpdate:
+        maxUnavailable: 1
+        maxSurge: 0
+
+    service:
+      enabled: false
+
+    ports:
+      web:
+        hostPort: 80
+        redirectTo: websecure
+      websecure:
+        hostPort: 443
+        tls:
+          enable: true
+
+    ingressRoute:
+      dashboard:
+        entryPoints:
+          - websecure
+        middlewares:
+          - name: basic-auth

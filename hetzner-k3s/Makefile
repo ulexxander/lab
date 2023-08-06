@@ -10,3 +10,6 @@ k3s-server-ssh:
 kube-config:
 	scp ${SSH_OPTS} $(shell ${SRV_1_IP}):/etc/rancher/k3s/k3s.yaml ~/.kube/config
 	sed -i 's|server: .*|server: https://$(shell ${SRV_1_IP}):6443|' ~/.kube/config
+
+kube-dashboard-token:
+	kubectl -n kube-dashboard create token admin-user
