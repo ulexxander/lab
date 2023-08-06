@@ -12,4 +12,4 @@ kube-config:
 	sed -i 's|server: .*|server: https://$(shell ${SRV_1_IP}):6443|' ~/.kube/config
 
 kube-dashboard-token:
-	kubectl -n kube-dashboard create token admin-user
+	kubectl -n kube-dashboard create token admin-user --duration 24h

@@ -18,7 +18,7 @@ VALUES=$(echo "$DOC" | yq '.spec.valuesContent')
 
 # TODO: add repo if not exists.
 # TODO: update repo if version not found.
-REPO_NAME=$(helm repo list | grep "$REPO" | cut -d' ' -f1)
+REPO_NAME=$(helm repo list | grep "$REPO" | awk '{print $1}')
 
 echo "$VALUES" | helm template "$NAME" "$REPO_NAME/$CHART" \
   --namespace "$NAMESPACE" --version "$VERSION" -f -
