@@ -1,0 +1,39 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: loki
+  namespace: monitoring
+spec:
+  repo: https://grafana.github.io/helm-charts
+  chart: loki
+  version: 5.10.0
+  valuesContent: |-
+    loki:
+      auth_enabled: false
+
+    monitoring:
+      lokiCanary:
+        enabled: false
+      
+      selfMonitoring:
+        enabled: false
+        grafanaAgent:
+          installOperator: false
+
+    minio:
+      enabled: true
+
+    read:
+      affinity: null
+
+    write:
+      affinity: null
+
+    backend:
+      affinity: null
+
+    gateway:
+      affinity: null
+
+    test:
+      enabled: false
