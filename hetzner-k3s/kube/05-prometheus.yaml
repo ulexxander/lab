@@ -1,0 +1,64 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  repo: https://prometheus-community.github.io/helm-charts
+  chart: prometheus
+  version: 23.2.0
+  valuesContent: |-
+    server:
+      ingress:
+        # TODO: requires some domain, won't work with IP.
+        # Currently Traefik's IngressRoute is used instead.
+        enabled: false
+        ingressClassName: traefik
+        path: /prometheus
+        hosts: []
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      
+      # TODO: it also causes prometheus (self) scrape target to fail with 404.
+      prefixURL: /prometheus
+      extraArgs:
+        web.external-url: /prometheus
+
+    alertmanager:
+      enabled: false
+
+    kube-state-metrics:
+      enabled: true
+      image:
+        # registry.k8s.io returns "403 Forbidden"
+        # Probably I've got blocked IP.
+        registry: docker.io
+        repository: bitnami/kube-state-metrics
+        tag: 2.9.2
+
+    prometheus-node-exporter:
+      enabled: true
+      fullnameOverride: prometheus-node-exporter
+
+    prometheus-pushgateway:
+      enabled: true
+      fullnameOverride: prometheus-pushgateway
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: PathPrefix(`/prometheus`)
+      kind: Rule
+      services:
+        - name: prometheus-server
+          port: 80
+      middlewares:
+        - name: basic-auth
+          namespace: kube-system
