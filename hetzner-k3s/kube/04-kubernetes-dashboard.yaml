@@ -49,6 +49,9 @@ spec:
       annotations:
         traefik.ingress.kubernetes.io/service.serverstransport: kube-dashboard-skip-verify@kubernetescrd
 
+    metricsScraper:
+      enabled: true
+
 ---
 apiVersion: v1
 kind: ServiceAccount
