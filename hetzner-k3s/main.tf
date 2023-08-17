@@ -1,5 +1,5 @@
 
-resource "hcloud_ssh_key" "this" {
+resource "hcloud_ssh_key" "k3s" {
   name       = "k3s"
   public_key = var.ssh_public_key
 }
@@ -11,8 +11,8 @@ resource "hcloud_server" "k3s_server_1" {
   name        = "k3s-server-1"
   location    = "nbg1" # Nuremberg, eu-central
   image       = "ubuntu-22.04"
-  server_type = "cx21"
-  ssh_keys    = [hcloud_ssh_key.this.id]
+  server_type = "cx31"
+  ssh_keys    = [hcloud_ssh_key.k3s.id]
   public_net {
     ipv4_enabled = true
     ipv6_enabled = false
