@@ -5,17 +5,6 @@ metadata:
 
 ---
 apiVersion: traefik.containo.us/v1alpha1
-kind: Middleware
-metadata:
-  name: strip-prefix
-  namespace: kube-dashboard
-spec:
-  stripPrefix:
-    prefixes:
-      - /kubernetes-dashboard
-
----
-apiVersion: traefik.containo.us/v1alpha1
 kind: ServersTransport
 metadata:
   name: skip-verify
@@ -24,6 +13,7 @@ spec:
   insecureSkipVerify: true
 
 ---
+# https://artifacthub.io/packages/helm/k8s-dashboard/kubernetes-dashboard/6.0.8
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -39,11 +29,13 @@ spec:
 
     ingress:
       enabled: true
+      className: traefik
+      hosts:
+        - kubernetes-dashboard.ulexxander.work
       paths:
-        - /kubernetes-dashboard
+        - ""
       annotations:
         traefik.ingress.kubernetes.io/router.entrypoints: websecure
-        traefik.ingress.kubernetes.io/router.middlewares: kube-dashboard-strip-prefix@kubernetescrd
 
     service:
       annotations:
@@ -53,6 +45,8 @@ spec:
       enabled: true
 
 ---
+# To get login token:
+# make kube-dashboard-token
 apiVersion: v1
 kind: ServiceAccount
 metadata:

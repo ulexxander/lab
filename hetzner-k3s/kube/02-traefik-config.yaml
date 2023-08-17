@@ -1,3 +1,4 @@
+# https://artifacthub.io/packages/helm/traefik/traefik/21.2.1
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
 metadata:

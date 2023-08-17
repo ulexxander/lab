@@ -1,3 +1,4 @@
+# https://artifacthub.io/packages/helm/prometheus-community/prometheus/23.2.0
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -10,31 +11,34 @@ spec:
   valuesContent: |-
     server:
       ingress:
-        # TODO: requires some domain, won't work with IP.
-        # Currently Traefik's IngressRoute is used instead.
-        enabled: false
+        enabled: true
         ingressClassName: traefik
-        path: /prometheus
-        hosts: []
+        pathType: ImplementationSpecific
+        path: ""
+        hosts:
+          - prometheus.ulexxander.work
         annotations:
           traefik.ingress.kubernetes.io/router.entrypoints: websecure
+          traefik.ingress.kubernetes.io/router.middlewares: kube-system-basic-auth@kubernetescrd
       
-      # TODO: it also causes prometheus (self) scrape target to fail with 404.
-      prefixURL: /prometheus
-      extraArgs:
-        web.external-url: /prometheus
+      persistentVolume:
+        enabled: true
+        storageClass: local-path
+        accessModes:
+          - ReadWriteOnce
+        size: 8Gi
 
     alertmanager:
       enabled: false
 
     kube-state-metrics:
       enabled: true
-      image:
-        # registry.k8s.io returns "403 Forbidden"
-        # Probably I've got blocked IP.
-        registry: docker.io
-        repository: bitnami/kube-state-metrics
-        tag: 2.9.2
+      # In case you get IP that is banned by registry.k8s.io
+      # happened to me once on Hetzner:
+      # image:
+      #   registry: docker.io
+      #   repository: bitnami/kube-state-metrics
+      #   tag: 2.9.2
 
     prometheus-node-exporter:
       enabled: true
@@ -43,22 +47,3 @@ spec:
     prometheus-pushgateway:
       enabled: true
       fullnameOverride: prometheus-pushgateway
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: prometheus
-  namespace: monitoring
-spec:
-  entryPoints:
-    - websecure
-  routes:
-    - match: PathPrefix(`/prometheus`)
-      kind: Rule
-      services:
-        - name: prometheus-server
-          port: 80
-      middlewares:
-        - name: basic-auth
-          namespace: kube-system
