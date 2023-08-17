@@ -23,11 +23,11 @@ spec:
     ports:
       web:
         hostPort: 80
-        redirectTo: websecure
       websecure:
         hostPort: 443
         tls:
           enable: true
+          certResolver: letsencrypt
 
     providers:
       kubernetesCRD:
@@ -37,5 +37,19 @@ spec:
       dashboard:
         entryPoints:
           - websecure
+        matchRule: Host(`traefik.ulexxander.work`)
         middlewares:
           - name: basic-auth
+
+    certResolvers:
+      letsencrypt:
+        email: ulexxander@gmail.com
+        storage: /data/acme.json
+        httpChallenge:
+          entryPoint: web
+
+    persistence:
+      enabled: true
+      accessMode: ReadWriteOnce
+      size: 128Mi
+      storageClass: local-path
