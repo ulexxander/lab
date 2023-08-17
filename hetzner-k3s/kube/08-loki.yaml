@@ -1,5 +1,6 @@
 # TODO: prom metrics.
 
+# https://artifacthub.io/packages/helm/grafana/loki/5.10.0
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -12,6 +13,17 @@ spec:
   valuesContent: |-
     loki:
       auth_enabled: false
+      commonConfig:
+        replication_factor: 1
+      storage:
+        type: filesystem
+
+    singleBinary:
+      replicas: 1
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: local-path
 
     monitoring:
       lokiCanary:
@@ -22,20 +34,8 @@ spec:
         grafanaAgent:
           installOperator: false
 
-    minio:
-      enabled: true
-
-    read:
-      affinity: null
-
-    write:
-      affinity: null
-
-    backend:
-      affinity: null
-
     gateway:
-      affinity: null
+      enabled: false
 
     test:
       enabled: false
