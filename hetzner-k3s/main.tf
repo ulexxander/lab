@@ -28,3 +28,47 @@ runcmd:
 
 YAML
 }
+
+resource "hcloud_firewall" "k3s_servers" {
+  name = "k3s-servers"
+
+  rule {
+    description = "HTTP Ingress"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "80"
+    source_ips  = ["0.0.0.0/0"]
+  }
+  rule {
+    description = "HTTPS Ingress"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "443"
+    source_ips  = ["0.0.0.0/0"]
+  }
+  rule {
+    description = "Ping"
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = ["0.0.0.0/0"]
+  }
+  rule {
+    description = "Kubernetes API from home"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "6443"
+    source_ips  = ["${var.home_external_ip_cidr}/32"]
+  }
+  rule {
+    description = "SSH from home"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = 22
+    source_ips  = ["${var.home_external_ip_cidr}/32"]
+  }
+}
+
+resource "hcloud_firewall_attachment" "k3s_servers" {
+  firewall_id = hcloud_firewall.k3s_servers.id
+  server_ids  = [hcloud_server.k3s_server_1.id]
+}
