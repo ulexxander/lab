@@ -1,0 +1,204 @@
+version: "3.8"
+
+# TODO:
+# - [ ] Databases and backups
+# - [ ] Messaging brokers
+# - [ ] Separate networks and composes?
+# - [ ] IdP? Authelia? Citadel?
+# - [ ] VPN? Short lived SSH certs? Teleport?
+
+services:
+  # docker compose run --rm debug
+  debug:
+    image: alpine
+    profiles:
+      - debug
+
+  traefik:
+    image: traefik:2.10.4
+    ports:
+      - "80:80"
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.localhost`)
+      - traefik.http.routers.traefik-dashboard.service=api@internal
+      - traefik.http.routers.traefik-dashboard.middlewares=auth-errors,auth-proxy
+      - prometheus.io/scrape=true
+      - prometheus.io/port=8080
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.0
+    command:
+      - --http-address=:4180
+      - --reverse-proxy
+      - --cookie-secure=false
+      - --email-domain=*
+      - --provider=gitlab
+      - --oidc-issuer-url=https://gitlab.com
+      - --pass-user-headers
+      - --set-xauthrequest
+    # Must contain:
+    # OAUTH2_PROXY_CLIENT_ID
+    # OAUTH2_PROXY_CLIENT_SECRET
+    # OAUTH2_PROXY_COOKIE_SECRET
+    env_file: oauth2-proxy.env
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.localhost`) && PathPrefix(`/oauth2`)
+      - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180
+      - traefik.http.middlewares.auth-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth
+      - traefik.http.middlewares.auth-proxy.forwardauth.trustForwardHeader=true
+      - traefik.http.middlewares.auth-proxy.forwardauth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Groups,X-Auth-Request-Email
+      - traefik.http.middlewares.auth-errors.errors.service=oauth2-proxy@docker
+      - traefik.http.middlewares.auth-errors.errors.status=401-403
+      - traefik.http.middlewares.auth-errors.errors.query=/oauth2/sign_in
+
+  grafana:
+    image: grafana/grafana:10.1.2
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources:/etc/grafana/provisioning/datasources
+    user: root
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`grafana.localhost`)
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - prometheus.io/scrape=true
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.localhost`)
+      - traefik.http.routers.prometheus.middlewares=auth-errors,auth-proxy
+      - prometheus.io/scrape=true
+
+  loki:
+    image: grafana/loki:2.9.1
+    volumes:
+      - ./loki.yml:/etc/loki/loki.yml
+      - loki-data:/loki
+    command:
+      - -config.file=/etc/loki/loki.yml
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - prometheus.io/scrape=true
+
+  fluent-bit:
+    image: fluent/fluent-bit:2.1.9
+    ports:
+      - "24224:24224"
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - prometheus.io/scrape=true
+      - prometheus.io/path=/api/v1/metrics/prometheus
+      - prometheus.io/port=2020
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    privileged: true
+    command:
+      - -store_container_labels=false
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /var/run:/var/run:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.cadvisor.rule=Host(`cadvisor.localhost`)
+      - traefik.http.routers.cadvisor.middlewares=auth-errors,auth-proxy
+      - prometheus.io/scrape=true
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - prometheus.io/scrape=true
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine3.18-v16.4.0
+    volumes:
+      - ./gitlab-runner-config.toml:/etc/gitlab-runner/config-template.toml
+      - ./gitlab-runner-entrypoint.sh:/entrypoint-custom
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: /entrypoint-custom
+    # Original image command must be specified if overriding entrypoint.
+    command:
+      - run
+      - --user=gitlab-runner
+      - --working-directory=/home/gitlab-runner
+    # Must contain:
+    # GITLAB_RUNNER_ID
+    # GITLAB_RUNNER_TOKEN
+    env_file: gitlab-runner.env
+    restart: always
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+    labels:
+      - prometheus.io/scrape=true
+      - prometheus.io/port=9252
+
+volumes:
+  grafana-data:
+  prometheus-data:
+  loki-data:

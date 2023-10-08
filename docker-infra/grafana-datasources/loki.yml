@@ -1,0 +1,9 @@
+# https://grafana.com/docs/grafana/latest/datasources/loki/
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100

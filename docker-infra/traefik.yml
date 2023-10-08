@@ -1,0 +1,13 @@
+accessLog: {}
+
+api: {}
+
+metrics:
+  prometheus: {}
+
+providers:
+  docker:
+    exposedByDefault: false
+# entryPoints:
+#   web:
+#     address: :80
