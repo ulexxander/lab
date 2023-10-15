@@ -1,12 +1,16 @@
 .PHONY: *
 
-SRV_IP = terraform output -raw server_public_ip
+# Before SSH over VPN is bootstrapped:
+# SRV_ADDR = $(shell terraform output -raw server_public_ip)
+
+# After SSH over VPN is possible:
+SRV_ADDR = docker-infra.ulexxander.tailnet.local
 
 sh:
-	ssh root@$(shell ${SRV_IP})
+	ssh root@${SRV_ADDR}
 
 sync:
-	rsync -r ./deploy/* root@$(shell ${SRV_IP}):/deploy
+	rsync -r ./deploy/* root@${SRV_ADDR}:/deploy
 
 up: sync
-	ssh root@$(shell ${SRV_IP}) "cd /deploy && docker compose up -d"
+	ssh root@${SRV_ADDR} "cd /deploy && docker compose up -d"

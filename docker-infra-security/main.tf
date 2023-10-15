@@ -31,6 +31,8 @@ YAML
 resource "hcloud_firewall" "docker_infra" {
   name = "docker-infra"
 
+  # SSH is possible only via VPN (headscale / tailscale).
+
   rule {
     description = "HTTP Ingress"
     direction   = "in"
@@ -51,18 +53,9 @@ resource "hcloud_firewall" "docker_infra" {
     protocol    = "icmp"
     source_ips  = ["0.0.0.0/0"]
   }
-  rule {
-    description = "SSH"
-    direction   = "in"
-    protocol    = "tcp"
-    port        = 22
-    source_ips  = ["0.0.0.0/0"] // TODO: vpn only
-  }
 }
 
 resource "hcloud_firewall_attachment" "docker_infra" {
-  count = 0 // Temp disabled
-
   firewall_id = hcloud_firewall.docker_infra.id
   server_ids  = [hcloud_server.docker_infra.id]
 }
