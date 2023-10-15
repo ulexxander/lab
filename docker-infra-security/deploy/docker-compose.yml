@@ -1,0 +1,116 @@
+version: "3.8"
+
+services:
+  # docker compose run --rm debug
+  debug:
+    image: alpine:3.18.4
+    profiles:
+      - debug
+
+  whoami:
+    image: traefik/whoami:v1.10.1
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami.entrypoints=websecure
+      - traefik.http.routers.whoami.rule=Host(`whoami.ulexxander.work`)
+
+  traefik:
+    image: traefik:2.10.4
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - traefik-acme-data:/acme
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.traefik-dashboard.entrypoints=websecure
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.ulexxander.work`)
+      - traefik.http.routers.traefik-dashboard.service=api@internal
+      - traefik.http.routers.traefik-dashboard.middlewares=auth-errors,auth-proxy
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.5.0
+    command:
+      - --http-address=:4180
+      - --email-domain=*
+      - --provider=oidc
+      - --oidc-issuer-url=https://keycloak.ulexxander.work/realms/master
+      - --code-challenge-method=S256
+      - --reverse-proxy
+    # Must contain:
+    # OAUTH2_PROXY_CLIENT_ID
+    # OAUTH2_PROXY_CLIENT_SECRET
+    # OAUTH2_PROXY_COOKIE_SECRET
+    env_file: oauth2-proxy.env
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.oauth2-proxy.entrypoints=websecure
+      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.ulexxander.work`) && PathPrefix(`/oauth2`)
+      - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180
+      - traefik.http.middlewares.auth-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth
+      - traefik.http.middlewares.auth-proxy.forwardauth.trustForwardHeader=true
+      - traefik.http.middlewares.auth-errors.errors.service=oauth2-proxy@docker
+      - traefik.http.middlewares.auth-errors.errors.status=401-403
+      - traefik.http.middlewares.auth-errors.errors.query=/oauth2/sign_in
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.4
+    command:
+      - start
+      # Currently does not work with this option.
+      # - --optimized
+    env_file: keycloak.env
+    environment:
+      - KC_HTTP_ENABLED=true
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_PROXY=edge
+      - KC_HOSTNAME_URL=https://keycloak.ulexxander.work
+    restart: always
+    depends_on:
+      keycloak-postgres:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.keycloak.entrypoints=websecure
+      - traefik.http.routers.keycloak.rule=Host(`keycloak.ulexxander.work`)
+      - prometheus.io/scrape=true
+      - prometheus.io/port=8787
+
+  keycloak-postgres:
+    image: postgres:15.4
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+    env_file: keycloak-postgres.env
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "postgres", "-U", "root"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  headscale:
+    image: headscale/headscale:0.22
+    command:
+      - headscale
+      - serve
+    volumes:
+      - ./headscale.yaml:/etc/headscale/config.yaml
+      - ./headscale-client-secret.txt:/etc/headscale/client-secret.txt
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.headscale.entrypoints=websecure
+      - traefik.http.routers.headscale.rule=Host(`headscale.ulexxander.work`)
+      - traefik.http.services.headscale.loadbalancer.server.port=8080
+      - prometheus.io/scrape=true
+      - prometheus.io/port=9090
+
+volumes:
+  traefik-acme-data:
+  keycloak-postgres-data:

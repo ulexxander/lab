@@ -6,3 +6,4 @@ terraform.tfstate.backup
 terraform.tfvars
 *.secret.yaml
 *.env
+headscale-client-secret.txt

@@ -1,10 +1,12 @@
 .PHONY: *
 
-SERVER := 78.47.78.121
+SRV_IP = terraform output -raw server_public_ip
 
 sh:
-	ssh root@${SERVER}
+	ssh root@$(shell ${SRV_IP})
 
-up:
-	rsync -r . root@${SERVER}:/deploy
-	ssh root@${SERVER} "cd /deploy && docker compose up -d"
+sync:
+	rsync -r ./deploy/* root@$(shell ${SRV_IP}):/deploy
+
+up: sync
+	ssh root@$(shell ${SRV_IP}) "cd /deploy && docker compose up -d"
