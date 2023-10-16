@@ -7,19 +7,31 @@ services:
     profiles:
       - debug
 
-  whoami:
+  whoami-external:
     image: traefik/whoami:v1.10.1
     restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.whoami.entrypoints=websecure
-      - traefik.http.routers.whoami.rule=Host(`whoami.ulexxander.work`)
+      - traefik.http.routers.whoami-external.entrypoints=ext-https
+      - traefik.http.routers.whoami-external.rule=Host(`whoami.ulexxander.work`)
+
+  whoami-internal:
+    image: traefik/whoami:v1.10.1
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami-internal.entrypoints=int-http
+      - traefik.http.routers.whoami-internal.rule=Host(`whoami.internal.ulexxander.work`)
 
   traefik:
     image: traefik:2.10.4
     ports:
-      - "80:80"
-      - "443:443"
+      # Extenral entrypoints.
+      - 188.34.198.254:80:80
+      - 188.34.198.254:443:443
+      # Internal entrypoints.
+      - 127.0.0.1:80:1080
+      - 127.0.0.1:443:1443
     volumes:
       - traefik-acme-data:/acme
       - ./traefik.yml:/etc/traefik/traefik.yml
@@ -27,8 +39,8 @@ services:
     restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik-dashboard.entrypoints=websecure
-      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.ulexxander.work`)
+      - traefik.http.routers.traefik-dashboard.entrypoints=int-http
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.internal.ulexxander.work`)
       - traefik.http.routers.traefik-dashboard.service=api@internal
       - traefik.http.routers.traefik-dashboard.middlewares=auth-errors,auth-proxy
 
@@ -41,6 +53,7 @@ services:
       - --oidc-issuer-url=https://keycloak.ulexxander.work/realms/master
       - --code-challenge-method=S256
       - --reverse-proxy
+      - --cookie-secure=false
     # Must contain:
     # OAUTH2_PROXY_CLIENT_ID
     # OAUTH2_PROXY_CLIENT_SECRET
@@ -49,8 +62,8 @@ services:
     restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.oauth2-proxy.entrypoints=websecure
-      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.ulexxander.work`) && PathPrefix(`/oauth2`)
+      - traefik.http.routers.oauth2-proxy.entrypoints=int-http
+      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.internal.ulexxander.work`) && PathPrefix(`/oauth2`)
       - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180
       - traefik.http.middlewares.auth-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth
       - traefik.http.middlewares.auth-proxy.forwardauth.trustForwardHeader=true
@@ -77,7 +90,7 @@ services:
         condition: service_healthy
     labels:
       - traefik.enable=true
-      - traefik.http.routers.keycloak.entrypoints=websecure
+      - traefik.http.routers.keycloak.entrypoints=ext-https
       - traefik.http.routers.keycloak.rule=Host(`keycloak.ulexxander.work`)
       - prometheus.io/scrape=true
       - prometheus.io/port=8787
@@ -100,17 +113,19 @@ services:
       - headscale
       - serve
     volumes:
+      - headscale-data:/var/lib/headscale
       - ./headscale.yaml:/etc/headscale/config.yaml
       - ./headscale-client-secret.txt:/etc/headscale/client-secret.txt
     restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.headscale.entrypoints=websecure
+      - traefik.http.routers.headscale.entrypoints=ext-https
       - traefik.http.routers.headscale.rule=Host(`headscale.ulexxander.work`)
       - traefik.http.services.headscale.loadbalancer.server.port=8080
       - prometheus.io/scrape=true
       - prometheus.io/port=9090
 
+  # NOTE: outgoing connections to other peers isn't working because of userspace mode.
   tailscale:
     image: tailscale/tailscale:v1.50.1
     network_mode: host
@@ -125,9 +140,11 @@ services:
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_SOCKET=/var/run/tailscale/tailscaled.sock
       - TS_EXTRA_ARGS=--login-server=https://headscale.ulexxander.work
+      # - TS_ACCEPT_DNS=true # Probably also requires to run in non-userspace mode.
     restart: always
 
 volumes:
   traefik-acme-data:
   keycloak-postgres-data:
+  headscale-data:
   tailscale-data:

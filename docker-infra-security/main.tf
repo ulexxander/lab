@@ -32,6 +32,13 @@ resource "hcloud_firewall" "docker_infra" {
   name = "docker-infra"
 
   # SSH is possible only via VPN (headscale / tailscale).
+  # rule {
+  #   description = "SSH"
+  #   direction   = "in"
+  #   protocol    = "tcp"
+  #   port        = "22"
+  #   source_ips  = ["0.0.0.0/0"]
+  # }
 
   rule {
     description = "HTTP Ingress"

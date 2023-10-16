@@ -70,8 +70,7 @@ noise:
 # IPv4: https://github.com/tailscale/tailscale/blob/22ebb25e833264f58d7c3f534a8b166894a89536/net/tsaddr/tsaddr.go#L33
 # Any other range is NOT supported, and it will cause unexpected issues.
 ip_prefixes:
-  - fd7a:115c:a1e0::/48
-  - 100.64.0.0/10
+  - 100.67.0.0/16
 
 # DERP is a relay system that Tailscale uses when a direct
 # connection cannot be established.
@@ -138,9 +137,9 @@ node_update_check_interval: 10s
 db_type: sqlite3
 
 # For production:
-# db_path: /var/lib/headscale/db.sqlite
+db_path: /var/lib/headscale/db.sqlite
 # The default /var/lib/headscale path is not writable  in the container
-db_path: /etc/headscale/db.sqlite
+# db_path: /etc/headscale/db.sqlite
 
 # # Postgres config
 # If using a Unix socket to connect to Postgres, set the socket path in the 'host' field and leave 'port' blank.
@@ -244,10 +243,13 @@ dns_config:
   # Extra DNS records
   # so far only A-records are supported (on the tailscale side)
   # See https://github.com/juanfont/headscale/blob/main/docs/dns-records.md#Limitations
-  # extra_records:
-  #   - name: "grafana.myvpn.example.com"
-  #     type: "A"
-  #     value: "100.64.0.3"
+  extra_records:
+    - name: "whoami.internal.ulexxander.work"
+      type: "A"
+      value: "100.67.0.2"
+    - name: "traefik.internal.ulexxander.work"
+      type: "A"
+      value: "100.67.0.2"
   #
   #   # you can also put it in one line
   #   - { name: "prometheus.myvpn.example.com", type: "A", value: "100.64.0.3" }

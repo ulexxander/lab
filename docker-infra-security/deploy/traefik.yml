@@ -6,18 +6,29 @@ metrics:
   prometheus: {}
 
 entryPoints:
-  web:
+  ext-http:
     address: :80
     http:
       redirections:
         entryPoint:
-          to: websecure
+          to: ext-https
           scheme: https
-  websecure:
+  ext-https:
     address: :443
     http:
       tls:
         certResolver: main
+
+  int-http:
+    address: :1080
+    # http:
+    #   redirections:
+    #     entryPoint:
+    #       to: int-https
+    #       scheme: https
+  int-https:
+    address: :1443
+    # DNS challenge needed in order for it to work.
 
 certificatesResolvers:
   main:
@@ -25,7 +36,7 @@ certificatesResolvers:
       email: ulexxander@gmail.com
       storage: /acme/acme.json
       httpChallenge:
-        entryPoint: web
+        entryPoint: ext-http
 
 providers:
   docker:
