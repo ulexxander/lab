@@ -250,6 +250,16 @@ dns_config:
     - name: "traefik.internal.ulexxander.work"
       type: "A"
       value: "100.67.0.2"
+    - name: "grafana.internal.ulexxander.work"
+      type: "A"
+      value: "100.67.0.2"
+    - name: "prometheus.internal.ulexxander.work"
+      type: "A"
+      value: "100.67.0.2"
+    - name: "cadvisor.internal.ulexxander.work"
+      type: "A"
+      value: "100.67.0.2"
+
   #
   #   # you can also put it in one line
   #   - { name: "prometheus.myvpn.example.com", type: "A", value: "100.64.0.3" }

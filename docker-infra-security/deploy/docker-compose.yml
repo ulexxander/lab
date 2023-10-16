@@ -143,8 +143,89 @@ services:
       # - TS_ACCEPT_DNS=true # Probably also requires to run in non-userspace mode.
     restart: always
 
+  grafana:
+    image: grafana/grafana:10.1.2
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources:/etc/grafana/provisioning/datasources
+    user: root
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.entrypoints=int-http
+      - traefik.http.routers.grafana.rule=Host(`grafana.internal.ulexxander.work`)
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - prometheus.io/scrape=true
+    env_file: grafana.env
+    environment:
+      - GF_SERVER_ROOT_URL=http://grafana.internal.ulexxander.work
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid email profile
+      - GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH=email
+      - GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH=preferred_username
+      - GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH=name
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://keycloak.ulexxander.work/realms/master/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://keycloak.ulexxander.work/realms/master/protocol/openid-connect/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://keycloak.ulexxander.work/realms/master/protocol/openid-connect/userinfo
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN=true
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=email == 'ulexxander@gmail.com' && 'GrafanaAdmin'
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT=true
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: root
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.entrypoints=int-http
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.internal.ulexxander.work`)
+      - traefik.http.routers.prometheus.middlewares=auth-errors,auth-proxy
+      - prometheus.io/scrape=true
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    privileged: true
+    command:
+      - -store_container_labels=false
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /var/run:/var/run:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: always
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.cadvisor-dashboard.entrypoints=int-http
+      - traefik.http.routers.cadvisor.rule=Host(`cadvisor.internal.ulexxander.work`)
+      - traefik.http.routers.cadvisor.middlewares=auth-errors,auth-proxy
+      - prometheus.io/scrape=true
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    restart: always
+    labels:
+      - prometheus.io/scrape=true
+
 volumes:
   traefik-acme-data:
   keycloak-postgres-data:
   headscale-data:
   tailscale-data:
+  grafana-data:
+  prometheus-data:
