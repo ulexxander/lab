@@ -202,7 +202,7 @@ services:
     restart: always
     labels:
       - traefik.enable=true
-      - traefik.http.routers.cadvisor-dashboard.entrypoints=int-http
+      - traefik.http.routers.cadvisor.entrypoints=int-http
       - traefik.http.routers.cadvisor.rule=Host(`cadvisor.internal.ulexxander.work`)
       - traefik.http.routers.cadvisor.middlewares=auth-errors,auth-proxy
       - prometheus.io/scrape=true
