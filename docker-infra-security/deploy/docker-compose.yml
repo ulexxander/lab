@@ -21,7 +21,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.whoami-internal.entrypoints=int-http
-      - traefik.http.routers.whoami-internal.rule=Host(`whoami.internal.ulexxander.work`)
+      - traefik.http.routers.whoami-internal.rule=Host(`whoami.ulexxander.internal`)
 
   traefik:
     image: traefik:2.10.4
@@ -40,7 +40,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.traefik-dashboard.entrypoints=int-http
-      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.internal.ulexxander.work`)
+      - traefik.http.routers.traefik-dashboard.rule=Host(`traefik.ulexxander.internal`)
       - traefik.http.routers.traefik-dashboard.service=api@internal
       - traefik.http.routers.traefik-dashboard.middlewares=auth-errors,auth-proxy
 
@@ -63,7 +63,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.oauth2-proxy.entrypoints=int-http
-      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.internal.ulexxander.work`) && PathPrefix(`/oauth2`)
+      - traefik.http.routers.oauth2-proxy.rule=HostRegexp(`{wildcard:[a-z]+}.ulexxander.internal`) && PathPrefix(`/oauth2`)
       - traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180
       - traefik.http.middlewares.auth-proxy.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth
       - traefik.http.middlewares.auth-proxy.forwardauth.trustForwardHeader=true
@@ -153,12 +153,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.grafana.entrypoints=int-http
-      - traefik.http.routers.grafana.rule=Host(`grafana.internal.ulexxander.work`)
+      - traefik.http.routers.grafana.rule=Host(`grafana.ulexxander.internal`)
       - traefik.http.services.grafana.loadbalancer.server.port=3000
       - prometheus.io/scrape=true
     env_file: grafana.env
     environment:
-      - GF_SERVER_ROOT_URL=http://grafana.internal.ulexxander.work
+      - GF_SERVER_ROOT_URL=http://grafana.ulexxander.internal
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
       - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
@@ -184,7 +184,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.prometheus.entrypoints=int-http
-      - traefik.http.routers.prometheus.rule=Host(`prometheus.internal.ulexxander.work`)
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.ulexxander.internal`)
       - traefik.http.routers.prometheus.middlewares=auth-errors,auth-proxy
       - prometheus.io/scrape=true
 
@@ -203,7 +203,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.cadvisor.entrypoints=int-http
-      - traefik.http.routers.cadvisor.rule=Host(`cadvisor.internal.ulexxander.work`)
+      - traefik.http.routers.cadvisor.rule=Host(`cadvisor.ulexxander.internal`)
       - traefik.http.routers.cadvisor.middlewares=auth-errors,auth-proxy
       - prometheus.io/scrape=true
 

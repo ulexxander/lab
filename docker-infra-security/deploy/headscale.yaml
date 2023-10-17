@@ -244,19 +244,19 @@ dns_config:
   # so far only A-records are supported (on the tailscale side)
   # See https://github.com/juanfont/headscale/blob/main/docs/dns-records.md#Limitations
   extra_records:
-    - name: "whoami.internal.ulexxander.work"
+    - name: "whoami.ulexxander.internal"
       type: "A"
       value: "100.67.0.2"
-    - name: "traefik.internal.ulexxander.work"
+    - name: "traefik.ulexxander.internal"
       type: "A"
       value: "100.67.0.2"
-    - name: "grafana.internal.ulexxander.work"
+    - name: "grafana.ulexxander.internal"
       type: "A"
       value: "100.67.0.2"
-    - name: "prometheus.internal.ulexxander.work"
+    - name: "prometheus.ulexxander.internal"
       type: "A"
       value: "100.67.0.2"
-    - name: "cadvisor.internal.ulexxander.work"
+    - name: "cadvisor.ulexxander.internal"
       type: "A"
       value: "100.67.0.2"
 
